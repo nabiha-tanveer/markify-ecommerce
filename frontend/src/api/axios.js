@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+baseURL: "https://markify-ecommerce-production-3b54.up.railway.app/api",
 });
 
 // Automatically attach token to every request if user is logged in
