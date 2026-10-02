@@ -15,7 +15,7 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password,
-      role: role || "buyer",
+           role: role === "seller" ? "seller" : "buyer",
       shopName: role === "seller" ? shopName : null,
     });
 

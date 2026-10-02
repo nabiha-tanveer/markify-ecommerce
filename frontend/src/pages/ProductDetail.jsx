@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import api from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 
@@ -101,12 +101,24 @@ export default function ProductDetail() {
           {message && <p className="text-sm text-emerald-600 mt-3">{message}</p>}
 
           {user?.role === "buyer" && (
-            <button
-              onClick={handleAddToCart}
-              className="mt-6 bg-rose-600 text-white px-6 py-2.5 rounded-xl hover:bg-rose-700 transition font-medium"
-            >
-              Add to Cart
-            </button>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddToCart}
+                className="bg-rose-600 text-white px-6 py-2.5 rounded-xl hover:bg-rose-700 transition font-medium"
+              >
+                Add to Cart
+              </button>
+              {product.seller?._id && (
+                <Link
+                  to={`/messages?to=${product.seller._id}&name=${encodeURIComponent(
+                    product.seller.shopName || product.seller.name
+                  )}`}
+                  className="border border-rose-600 text-rose-600 px-6 py-2.5 rounded-xl hover:bg-rose-50 transition font-medium"
+                >
+                  Chat with Seller
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </div>

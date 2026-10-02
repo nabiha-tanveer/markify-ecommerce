@@ -100,7 +100,13 @@ export const updateProduct = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to edit this product" });
     }
 
-    Object.assign(product, req.body);
+    const { name, description, price, category, stock } = req.body;
+    if (name !== undefined) product.name = name;
+    if (description !== undefined) product.description = description;
+    if (price !== undefined) product.price = price;
+    if (category !== undefined) product.category = category;
+    if (stock !== undefined) product.stock = stock;
+
     const updated = await product.save();
     res.json(updated);
   } catch (error) {

@@ -42,6 +42,12 @@ export default function Navbar() {
           </Link>
         )}
 
+        {(user?.role === "buyer" || user?.role === "seller") && (
+          <Link to="/messages" className="text-gray-700 hover:text-rose-600 transition">
+            Messages
+          </Link>
+        )}
+
         {user?.role === "admin" && (
           <Link to="/admin/pending" className="text-gray-700 hover:text-rose-600 transition">
             Admin

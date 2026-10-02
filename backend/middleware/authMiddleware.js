@@ -27,3 +27,11 @@ export const authorize = (...roles) => {
     next();
   };
 };
+export const requireApprovedSeller = (req, res, next) => {
+  if (req.user.role === "seller" && !req.user.isApprovedSeller) {
+    return res
+      .status(403)
+      .json({ message: "Your seller account is pending admin approval" });
+  }
+  next();
+};

@@ -1,10 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-baseURL: "https://markify-ecommerce-production-3b54.up.railway.app/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
-// Automatically attach token to every request if user is logged in
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {

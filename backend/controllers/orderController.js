@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import Cart from "../models/Cart.js";
 
 let stripe;
 const getStripe = () => {
@@ -9,7 +10,6 @@ const getStripe = () => {
   }
   return stripe;
 };
-
 
 export const placeOrder = async (req, res) => {
   try {
@@ -43,6 +43,9 @@ export const placeOrder = async (req, res) => {
       metadata: { buyerId: req.user._id.toString() },
     });
 
+    // Purane unpaid (pending) orders hata do
+    await Order.deleteMany({ buyer: req.user._id, paymentStatus: "pending" });
+
     const order = await Order.create({
       buyer: req.user._id,
       items: orderItems,
@@ -60,12 +63,19 @@ export const placeOrder = async (req, res) => {
   }
 };
 
-
 export const confirmPayment = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (order.buyer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    if (order.paymentStatus === "paid") {
+      return res.json({ message: "Already paid", order });
     }
 
     const paymentIntent = await getStripe().paymentIntents.retrieve(order.stripePaymentId);
@@ -74,12 +84,13 @@ export const confirmPayment = async (req, res) => {
       order.paymentStatus = "paid";
       await order.save();
 
-      // Reduce stock for each product
       for (const item of order.items) {
         await Product.findByIdAndUpdate(item.product, {
           $inc: { stock: -item.quantity },
         });
       }
+
+      await Cart.findOneAndUpdate({ buyer: req.user._id }, { items: [] });
 
       return res.json({ message: "Payment confirmed", order });
     }
@@ -92,32 +103,49 @@ export const confirmPayment = async (req, res) => {
 
 export const getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ buyer: req.user._id });
+    const orders = await Order.find({
+      buyer: req.user._id,
+      paymentStatus: "paid",
+    }).sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc  Seller's orders (orders containing their products)
-// @route GET /api/orders/seller-orders
+// Seller's orders (sirf paid orders jin mein unke products hain)
 export const getSellerOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ "items.seller": req.user._id });
+    const orders = await Order.find({
+      "items.seller": req.user._id,
+      paymentStatus: "paid",
+    }).sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    const allowed = ["processing", "shipped", "delivered", "cancelled"];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
+
+    if (
+      req.user.role === "seller" &&
+      !order.items.some((i) => i.seller.toString() === req.user._id.toString())
+    ) {
+      return res.status(403).json({ message: "Not your order" });
+    }
+
     order.orderStatus = status;
     await order.save();
     res.json(order);
